@@ -1,0 +1,7 @@
+name: "Asana + Github - custom action"
+description: "change status of target task when PR is reviewed or merged"
+author: "Pedro Moreno"
+
+runs:
+  using: "node20"
+  main: "dist/index.js"
