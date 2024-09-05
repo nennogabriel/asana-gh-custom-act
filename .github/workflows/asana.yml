@@ -6,10 +6,10 @@ on:
         types: [submitted]
 
 jobs:
-  hello:
+  change-dev-status:
     runs-on: ubuntu-latest
     steps:
       - uses: actions/checkout@v4
       - uses: ./
         with:
-          asana-token: ${{ secrets.ASANA_SECRET }}
+          asana-secret: ${{ secrets.ASANA_SECRET }}
