@@ -23,8 +23,6 @@ async function updateAsanaTaskStatus(taskId: string, status: string) {
 }
 
 export async function run() {
-  console.log("Starting action...");
-  console.log("ASANA_SECRET", ASANA_SECRET);
   const prInfo = github.context.payload;
   if (!prInfo.pull_request) {
     core.setFailed("No pull request found.");
