@@ -44,7 +44,7 @@ const STATUS_READY_FOR_QA = "Ready for QA";
 const STATUS_BACK = "Back";
 async function updateAsanaTaskStatus(taskId, status) {
     try {
-        await axios_1.default.put(`https://app.asana.com/api/1.0/tasks/${taskId}`, { data: { custom_fields: { "Dev Status": status } } }, { headers: { Authorization: `Bearer ${ASANA_SECRET}` } });
+        await axios_1.default.put(`https://app.asana.com/api/1.0/tasks/${taskId}`, { data: { custom_fields: { "status": status } } }, { headers: { Authorization: `Bearer ${ASANA_SECRET}` } });
         core.info(`Task ${taskId} updated to status: ${status}`);
     }
     catch (error) {
@@ -52,6 +52,8 @@ async function updateAsanaTaskStatus(taskId, status) {
     }
 }
 async function run() {
+    console.log("Starting action...");
+    console.log("ASANA_SECRET", ASANA_SECRET);
     const prInfo = github.context.payload;
     if (!prInfo.pull_request) {
         core.setFailed("No pull request found.");
