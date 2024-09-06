@@ -6,6 +6,7 @@
   "scripts": {
     "build": "tsc && ncc build lib/index.js",
     "test": "jest",
+    "test:watch": "jest --watch",
     "prepare": "husky install"
   },
   "keywords": [],

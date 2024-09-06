@@ -128,39 +128,41 @@ async function run() {
     }
     const task = await asana_1.default.getTask(taskIds[0]);
     const filterDevStatusId = task.custom_fields.filter((t) => ["STATUS", "DEV STATUS"].includes(t.name.toUpperCase()));
-    if (!filterDevStatusId) {
+    if (filterDevStatusId.length === 0) {
         core.setFailed("There is no Field with name Status or Dev Status.");
+        return;
     }
     const devStatusId = filterDevStatusId[0].gid;
     const optionsList = [CODE_REVIEW, READY_FOR_QA];
     const filteredOptions = filterDevStatusId[0].enum_options.filter((o) => optionsList.includes(o.name.toUpperCase()));
     if (optionsList.length !== filteredOptions.length) {
         core.setFailed(`Not all options are available in the field. One or more options is missing: ${optionsList}`);
+        return;
     }
     const option = filteredOptions.reduce((acc, curr) => {
         acc[curr.name.toUpperCase()] = curr.gid;
         return acc;
     }, {});
-    let status;
     const eventName = github.context.eventName;
     const action = prInfo.action;
-    if (eventName === "pull_request" && (action === "opened" || action === "reopened")) {
-        status = option.CODE_REVIEW;
-    }
-    else if (eventName === "pull_request_review" && prInfo.review.state === "approved") {
-        status = option.READY_FOR_QA;
-    }
-    else {
+    const status = (() => {
+        if (eventName === "pull_request" && (action === "opened" || action === "reopened")) {
+            return option.CODE_REVIEW;
+        }
+        else if (eventName === "pull_request_review" && prInfo.review.state === "approved") {
+            return option.READY_FOR_QA;
+        }
+    })();
+    if (!status) {
         core.info("No relevant action detected, skipping status update.");
         return;
     }
-    for (const taskId of taskIds) {
-        await asana_1.default.updateTask(taskId, {
-            custom_fields: {
-                [devStatusId]: status,
-            },
-        });
-    }
+    await Promise.all(taskIds.map(taskId => asana_1.default.updateTask(taskId, {
+        custom_fields: {
+            [devStatusId]: status,
+        },
+    })));
+    core.info(`Task status updated to ${status}`);
 }
 
 
