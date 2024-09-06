@@ -131,6 +131,11 @@ async function run() {
         return;
     }
     const task = await asana_1.default.getTask(taskIds[0]);
+    console.log("task", task);
+    if (!task.custom_fields) {
+        core.setFailed("There is no custom fields in the task.");
+        return;
+    }
     const filterDevStatusId = task.custom_fields.filter((t) => ["STATUS", "DEV STATUS"].includes(t.name.toUpperCase()));
     if (filterDevStatusId.length === 0) {
         core.setFailed("There is no Field with name Status or Dev Status.");
