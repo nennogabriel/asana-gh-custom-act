@@ -23,7 +23,7 @@ Before using this GitHub Action, ensure you have the following:
 
 3. **Add Secrets to GitHub**:
    - In your GitHub repository, go to `Settings` > `Secrets` and add the following secrets:
-     - `ASANA_ACCESS_TOKEN`: Your Asana personal access token.
+     - `ASANA_TOKEN`: Your Asana personal access token.
 
 ## Usage
 
@@ -43,9 +43,8 @@ jobs:
   change-dev-status:
     runs-on: ubuntu-latest
     steps:
-      - name: Asana + Github - custom action
-        uses: nennogabriel/asana-gh-custom-act@main
-          with:
-            asana-token: ${{ secrets.ASANA_TOKEN }}
+      - uses: nennogabriel/asana-gh-custom-act@v1.0.0
+        with:
+          asana-token: ${{ secrets.ASANA_TOKEN }}
               
             
