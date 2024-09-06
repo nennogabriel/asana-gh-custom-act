@@ -44,7 +44,7 @@ const asana = {
     async getTask(taskId) {
         try {
             const response = await axios_1.default.get(`${ASANA_BASE_URL}/tasks/${taskId}`, { headers });
-            return response.data;
+            return response.data.data;
         }
         catch (error) {
             throw new Error(`Failed to get task ${taskId}: ${error.message}`);
@@ -53,7 +53,7 @@ const asana = {
     async updateTask(taskId, data) {
         try {
             const response = await axios_1.default.put(`${ASANA_BASE_URL}/tasks/${taskId}`, { data }, { headers });
-            return response.data;
+            return response.data.data;
         }
         catch (error) {
             throw new Error(`Failed to update task ${taskId}: ${error.message}`);
