@@ -43,7 +43,9 @@ jobs:
   change-dev-status:
     runs-on: ubuntu-latest
     steps:
-      - uses: actions/checkout@v4
-      - uses: ./
-        with:
-          asana-token: ${{ secrets.ASANA_TOKEN }}
+      - name: Asana + Github - custom action
+        uses: nennogabriel/asana-gh-custom-act@main
+          with:
+            asana-token: ${{ secrets.ASANA_TOKEN }}
+              
+            
