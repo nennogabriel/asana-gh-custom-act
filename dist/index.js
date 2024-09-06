@@ -35,7 +35,7 @@ var __importDefault = (this && this.__importDefault) || function (mod) {
 Object.defineProperty(exports, "__esModule", ({ value: true }));
 const core = __importStar(__nccwpck_require__(2186));
 const axios_1 = __importDefault(__nccwpck_require__(8757));
-const ASANA_TOKEN = core.getInput("asana-secret");
+const ASANA_TOKEN = core.getInput("asana-token");
 const ASANA_BASE_URL = "https://app.asana.com/api/1.0";
 const headers = {
     Authorization: `Bearer ${ASANA_TOKEN}`,

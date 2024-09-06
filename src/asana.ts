@@ -1,7 +1,7 @@
 import * as core from "@actions/core";
 import axios from "axios";
 
-const ASANA_TOKEN = core.getInput("asana-secret");
+const ASANA_TOKEN = core.getInput("asana-token");
 const ASANA_BASE_URL = "https://app.asana.com/api/1.0";
 
 const headers = {
