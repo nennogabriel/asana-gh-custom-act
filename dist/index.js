@@ -1,6 +1,70 @@
 /******/ (() => { // webpackBootstrap
 /******/ 	var __webpack_modules__ = ({
 
+/***/ 4783:
+/***/ (function(__unused_webpack_module, exports, __nccwpck_require__) {
+
+"use strict";
+
+var __createBinding = (this && this.__createBinding) || (Object.create ? (function(o, m, k, k2) {
+    if (k2 === undefined) k2 = k;
+    var desc = Object.getOwnPropertyDescriptor(m, k);
+    if (!desc || ("get" in desc ? !m.__esModule : desc.writable || desc.configurable)) {
+      desc = { enumerable: true, get: function() { return m[k]; } };
+    }
+    Object.defineProperty(o, k2, desc);
+}) : (function(o, m, k, k2) {
+    if (k2 === undefined) k2 = k;
+    o[k2] = m[k];
+}));
+var __setModuleDefault = (this && this.__setModuleDefault) || (Object.create ? (function(o, v) {
+    Object.defineProperty(o, "default", { enumerable: true, value: v });
+}) : function(o, v) {
+    o["default"] = v;
+});
+var __importStar = (this && this.__importStar) || function (mod) {
+    if (mod && mod.__esModule) return mod;
+    var result = {};
+    if (mod != null) for (var k in mod) if (k !== "default" && Object.prototype.hasOwnProperty.call(mod, k)) __createBinding(result, mod, k);
+    __setModuleDefault(result, mod);
+    return result;
+};
+var __importDefault = (this && this.__importDefault) || function (mod) {
+    return (mod && mod.__esModule) ? mod : { "default": mod };
+};
+Object.defineProperty(exports, "__esModule", ({ value: true }));
+const core = __importStar(__nccwpck_require__(2186));
+const axios_1 = __importDefault(__nccwpck_require__(8757));
+const ASANA_TOKEN = core.getInput("asana-secret");
+const ASANA_BASE_URL = "https://app.asana.com/api/1.0";
+const headers = {
+    Authorization: `Bearer ${ASANA_TOKEN}`,
+};
+const asana = {
+    async getTask(taskId) {
+        try {
+            const response = await axios_1.default.get(`${ASANA_BASE_URL}/tasks/${taskId}`, { headers });
+            return response.data;
+        }
+        catch (error) {
+            throw new Error(`Failed to get task ${taskId}: ${error.message}`);
+        }
+    },
+    async updateTask(taskId, data) {
+        try {
+            const response = await axios_1.default.put(`${ASANA_BASE_URL}/tasks/${taskId}`, { data }, { headers });
+            return response.data;
+        }
+        catch (error) {
+            throw new Error(`Failed to update task ${taskId}: ${error.message}`);
+        }
+    },
+};
+exports["default"] = asana;
+
+
+/***/ }),
+
 /***/ 3109:
 /***/ (function(__unused_webpack_module, exports, __nccwpck_require__) {
 
@@ -36,21 +100,10 @@ Object.defineProperty(exports, "__esModule", ({ value: true }));
 exports.run = run;
 const core = __importStar(__nccwpck_require__(2186));
 const github = __importStar(__nccwpck_require__(5438));
-const axios_1 = __importDefault(__nccwpck_require__(8757));
-const ASANA_SECRET = core.getInput("asana-secret");
+const asana_1 = __importDefault(__nccwpck_require__(4783));
 const ASANA_TASK_LINK_REGEX = /https:\/\/app.asana.com\/(\d+)\/(?<project>\d+)\/(?<taskId>\d+).*/gi;
-const STATUS_CODE_REVIEW = "Code Review";
-const STATUS_READY_FOR_QA = "Ready for QA";
-const STATUS_BACK = "Back";
-async function updateAsanaTaskStatus(taskId, status) {
-    try {
-        await axios_1.default.put(`https://app.asana.com/api/1.0/tasks/${taskId}`, { data: { custom_fields: { status: status } } }, { headers: { Authorization: `Bearer ${ASANA_SECRET}` } });
-        core.info(`Task ${taskId} updated to status: ${status}`);
-    }
-    catch (error) {
-        core.setFailed(`Failed to update task ${taskId}: ${error.message}`);
-    }
-}
+const CODE_REVIEW = "CODE REVIEW";
+const READY_FOR_QA = "READY FOR QA";
 async function run() {
     const prInfo = github.context.payload;
     if (!prInfo.pull_request) {
@@ -70,27 +123,45 @@ async function run() {
         }
     }
     if (taskIds.length === 0) {
-        core.setFailed("No task id found in the description.");
+        core.setFailed("No task id found in the description. Or link is missing.");
         return;
     }
+    const task = (await asana_1.default.getTask(taskIds[0]));
+    const filterDevStatusId = task.custom_fields
+        .filter((t) => (['STATUS', 'DEV STATUS'].includes(t.name.toUpperCase())));
+    if (!filterDevStatusId) {
+        core.setFailed("There is no Field with name Status or Dev Status.");
+    }
+    const devStatusId = filterDevStatusId[0].gid;
+    const optionsList = [CODE_REVIEW, READY_FOR_QA];
+    const filteredOptions = filterDevStatusId[0].enum_options
+        .filter((o) => (optionsList.includes(o.name.toUpperCase())));
+    if (optionsList.length !== filteredOptions.length) {
+        core.setFailed(`Not all options are available in the field. One or more options is missing: ${optionsList}`);
+    }
+    const option = filteredOptions.reduce((acc, curr) => {
+        acc[curr.name.toUpperCase()] = curr.gid;
+        return acc;
+    }, {});
     let status;
     const eventName = github.context.eventName;
     const action = prInfo.action;
     if (eventName === "pull_request" && (action === "opened" || action === "reopened")) {
-        status = STATUS_CODE_REVIEW;
+        status = option.CODE_REVIEW;
     }
     else if (eventName === "pull_request_review" && prInfo.review.state === "approved") {
-        status = STATUS_READY_FOR_QA;
-    }
-    else if (eventName === "workflow_run" && prInfo.workflow_run.conclusion === "failure") {
-        status = STATUS_BACK;
+        status = option.READY_FOR_QA;
     }
     else {
         core.info("No relevant action detected, skipping status update.");
         return;
     }
     for (const taskId of taskIds) {
-        await updateAsanaTaskStatus(taskId, status);
+        await asana_1.default.updateTask(taskId, {
+            custom_fields: {
+                [devStatusId]: status,
+            },
+        });
     }
 }
 
