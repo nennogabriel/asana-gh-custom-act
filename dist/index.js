@@ -126,16 +126,14 @@ async function run() {
         core.setFailed("No task id found in the description. Or link is missing.");
         return;
     }
-    const task = (await asana_1.default.getTask(taskIds[0]));
-    const filterDevStatusId = task.custom_fields
-        .filter((t) => (['STATUS', 'DEV STATUS'].includes(t.name.toUpperCase())));
+    const task = await asana_1.default.getTask(taskIds[0]);
+    const filterDevStatusId = task.custom_fields.filter((t) => ["STATUS", "DEV STATUS"].includes(t.name.toUpperCase()));
     if (!filterDevStatusId) {
         core.setFailed("There is no Field with name Status or Dev Status.");
     }
     const devStatusId = filterDevStatusId[0].gid;
     const optionsList = [CODE_REVIEW, READY_FOR_QA];
-    const filteredOptions = filterDevStatusId[0].enum_options
-        .filter((o) => (optionsList.includes(o.name.toUpperCase())));
+    const filteredOptions = filterDevStatusId[0].enum_options.filter((o) => optionsList.includes(o.name.toUpperCase()));
     if (optionsList.length !== filteredOptions.length) {
         core.setFailed(`Not all options are available in the field. One or more options is missing: ${optionsList}`);
     }

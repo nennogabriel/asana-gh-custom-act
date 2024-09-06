@@ -1,26 +1,11 @@
 import * as core from "@actions/core";
 import * as github from "@actions/github";
-import axios from "axios";
+import asana from "./asana";
 
-const ASANA_SECRET = core.getInput("asana-secret");
 const ASANA_TASK_LINK_REGEX = /https:\/\/app.asana.com\/(\d+)\/(?<project>\d+)\/(?<taskId>\d+).*/gi;
 
-const STATUS_CODE_REVIEW = "Code Review";
-const STATUS_READY_FOR_QA = "Ready for QA";
-const STATUS_BACK = "Back";
-
-async function updateAsanaTaskStatus(taskId: string, status: string) {
-  try {
-    await axios.put(
-      `https://app.asana.com/api/1.0/tasks/${taskId}`,
-      { data: { custom_fields: { status: status } } },
-      { headers: { Authorization: `Bearer ${ASANA_SECRET}` } }
-    );
-    core.info(`Task ${taskId} updated to status: ${status}`);
-  } catch (error) {
-    core.setFailed(`Failed to update task ${taskId}: ${(error as Error).message}`);
-  }
-}
+const CODE_REVIEW = "CODE REVIEW";
+const READY_FOR_QA = "READY FOR QA";
 
 export async function run() {
   const prInfo = github.context.payload;
@@ -44,26 +29,49 @@ export async function run() {
   }
 
   if (taskIds.length === 0) {
-    core.setFailed("No task id found in the description.");
+    core.setFailed("No task id found in the description. Or link is missing.");
     return;
   }
+
+  const task = await asana.getTask(taskIds[0]);
+
+  const filterDevStatusId = task.custom_fields.filter((t) => ["STATUS", "DEV STATUS"].includes(t.name.toUpperCase()));
+  if (!filterDevStatusId) {
+    core.setFailed("There is no Field with name Status or Dev Status.");
+  }
+
+  const devStatusId = filterDevStatusId[0].gid;
+
+  const optionsList = [CODE_REVIEW, READY_FOR_QA];
+  const filteredOptions = filterDevStatusId[0].enum_options.filter((o) => optionsList.includes(o.name.toUpperCase()));
+
+  if (optionsList.length !== filteredOptions.length) {
+    core.setFailed(`Not all options are available in the field. One or more options is missing: ${optionsList}`);
+  }
+
+  const option = filteredOptions.reduce((acc: { [key: string]: string }, curr) => {
+    acc[curr.name.toUpperCase()] = curr.gid;
+    return acc;
+  }, {});
 
   let status;
   const eventName = github.context.eventName;
   const action = prInfo.action;
 
   if (eventName === "pull_request" && (action === "opened" || action === "reopened")) {
-    status = STATUS_CODE_REVIEW;
+    status = option.CODE_REVIEW;
   } else if (eventName === "pull_request_review" && prInfo.review.state === "approved") {
-    status = STATUS_READY_FOR_QA;
-  } else if (eventName === "workflow_run" && prInfo.workflow_run.conclusion === "failure") {
-    status = STATUS_BACK;
+    status = option.READY_FOR_QA;
   } else {
     core.info("No relevant action detected, skipping status update.");
     return;
   }
 
   for (const taskId of taskIds) {
-    await updateAsanaTaskStatus(taskId, status);
+    await asana.updateTask(taskId, {
+      custom_fields: {
+        [devStatusId]: status,
+      },
+    });
   }
 }
