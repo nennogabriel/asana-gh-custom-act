@@ -116,11 +116,15 @@ async function run() {
         return;
     }
     const taskIds = [];
-    let rawParseUrlTask;
-    while ((rawParseUrlTask = ASANA_TASK_LINK_REGEX.exec(description)) !== null) {
-        if (rawParseUrlTask.groups) {
-            taskIds.push(rawParseUrlTask.groups.taskId);
+    let match;
+    while ((match = ASANA_TASK_LINK_REGEX.exec(description)) !== null) {
+        if (match.index === ASANA_TASK_LINK_REGEX.lastIndex) {
+            ASANA_TASK_LINK_REGEX.lastIndex++;
         }
+        if (!match.groups) {
+            continue;
+        }
+        taskIds.push(match.groups.taskId);
     }
     if (taskIds.length === 0) {
         core.setFailed("No task id found in the description. Or link is missing.");
@@ -147,17 +151,17 @@ async function run() {
     const action = prInfo.action;
     const status = (() => {
         if (eventName === "pull_request" && (action === "opened" || action === "reopened")) {
-            return option.CODE_REVIEW;
+            return option[CODE_REVIEW];
         }
         else if (eventName === "pull_request_review" && prInfo.review.state === "approved") {
-            return option.READY_FOR_QA;
+            return option[READY_FOR_QA];
         }
     })();
     if (!status) {
         core.info("No relevant action detected, skipping status update.");
         return;
     }
-    await Promise.all(taskIds.map(taskId => asana_1.default.updateTask(taskId, {
+    await Promise.all(taskIds.map((taskId) => asana_1.default.updateTask(taskId, {
         custom_fields: {
             [devStatusId]: status,
         },
