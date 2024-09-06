@@ -12,5 +12,5 @@ runs:
   main: "dist/index.js"
 
 branding:
-  icon: "circle-slash"
+  icon: "zap"
   color: "blue"
