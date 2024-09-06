@@ -39,7 +39,6 @@ export async function run() {
 
   const task = await asana.getTask(taskIds[0]);
 
-  console.log("task", task);
   if (!task.custom_fields) {
     core.setFailed("There is no custom fields in the task.");
     return;
