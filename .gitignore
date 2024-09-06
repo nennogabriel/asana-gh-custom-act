@@ -89,6 +89,9 @@ out
 
 # Nuxt.js build / generate output
 .nuxt
+
+# Github Actions build output
+.secrets
 lib/
 
 # Gatsby files
