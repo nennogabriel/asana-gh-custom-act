@@ -164,4 +164,26 @@ describe("run", () => {
 
     expect(asana.updateTask).toBeCalledTimes(2);
   });
+
+  it("should be able to Identify CODE_REVIEW and READY_FOR_QA even when they have icons on asana", async () => {
+    github.context.payload = { pull_request: { number: 1, body: `Something with ${TASK_LINK}` } };
+    github.context.eventName = "pull_request";
+    github.context.payload.action = "opened";
+    (asana.getTask as jest.Mock).mockResolvedValue({
+      custom_fields: [
+        {
+          name: "Dev Status",
+          gid: STATUS_ID,
+          enum_options: [
+            { name: "🍕 code Review", gid: CODE_REVIEW_ID },
+            { name: "🍕 ready for QA extra text", gid: READY_FOR_QA_ID },
+          ],
+        },
+      ],
+    });
+
+    await run();
+
+    expect(asana.updateTask).toHaveBeenCalledWith(TASK_ID, { custom_fields: { [STATUS_ID]: CODE_REVIEW_ID } });
+  });
 });
