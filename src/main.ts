@@ -53,7 +53,21 @@ export async function run() {
   const devStatusId = filterDevStatusId[0].gid;
 
   const optionsList = [CODE_REVIEW, READY_FOR_QA];
-  const filteredOptions = filterDevStatusId[0].enum_options.filter((o) => optionsList.includes(o.name.toUpperCase()));
+  const filteredOptions = filterDevStatusId[0].enum_options
+    .map((o) => {
+      let name = o.name.toUpperCase();
+      if (name.includes("READY FOR QA")) {
+        name = READY_FOR_QA;
+      }
+      if (name.includes("CODE REVIEW")) {
+        name = CODE_REVIEW;
+      }
+      return {
+        name,
+        gid: o.gid,
+      };
+    })
+    .filter((o) => optionsList.includes(o.name.toUpperCase()));
 
   if (optionsList.length !== filteredOptions.length) {
     core.setFailed(`Not all options are available in the field. One or more options is missing: ${optionsList}`);
