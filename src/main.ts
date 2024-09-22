@@ -2,12 +2,14 @@ import * as core from "@actions/core";
 import * as github from "@actions/github";
 import asana from "./asana";
 
-const ASANA_TASK_LINK_REGEX = /https:\/\/app.asana.com\/(\d+)\/(?<project>\d+)\/(?<taskId>\d+).*/gi;
-
-const CODE_REVIEW = "CODE REVIEW";
-const READY_FOR_QA = "READY FOR QA";
-
 export async function run() {
+  const ASANA_TASK_LINK_REGEX = /https:\/\/app.asana.com\/(\d+)\/(?<project>\d+)\/(?<taskId>\d+).*/gi;
+
+  const WHITELIST_GITHUB_USERS = (core.getInput("whitelist-github-users") || "").split(",");
+
+  const CODE_REVIEW = "CODE REVIEW";
+  const READY_FOR_QA = "READY FOR QA";
+
   const prInfo = github.context.payload;
   if (!prInfo.pull_request) {
     core.setFailed("No pull request found.");
@@ -82,11 +84,17 @@ export async function run() {
   const eventName = github.context.eventName;
   const action = prInfo.action;
 
+  const prAuthor = prInfo.pull_request.user.login;
+
   const status = (() => {
-    if (eventName === "pull_request" && (action === "opened" || action === "reopened")) {
-      return option[CODE_REVIEW];
-    } else if (eventName === "pull_request_review" && prInfo.review.state === "approved") {
+    if (WHITELIST_GITHUB_USERS.includes(prAuthor)) {
       return option[READY_FOR_QA];
+    } else {
+      if (eventName === "pull_request" && (action === "opened" || action === "reopened")) {
+        return option[CODE_REVIEW];
+      } else if (eventName === "pull_request_review" && prInfo.review.state === "approved") {
+        return option[READY_FOR_QA];
+      }
     }
   })();
 
